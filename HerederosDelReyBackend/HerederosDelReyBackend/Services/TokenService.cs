@@ -25,7 +25,8 @@ namespace HerederosDelReyBackend.Services
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Name, usuario.Usuario1),
                 new Claim(ClaimTypes.Email, usuario.Correo),
-                new Claim(ClaimTypes.Role, usuario.Rol)
+                new Claim(ClaimTypes.Role, usuario.Rol),
+                new Claim("IdSucursal", usuario.IdSucursal.ToString())
             };
 
             var key = new SymmetricSecurityKey(

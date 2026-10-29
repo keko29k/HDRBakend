@@ -14,10 +14,6 @@ namespace HerederosDelReyBackend.Interfaces
         Task<bool> UpdateAsync(int id, CompraUpdateDto dto);
         Task<bool> DeleteAsync(int id);
 
-
-        Task<bool> CompraDetalle(CompraDetalleDto dto);
-
-
         Task<ApiResponse<IEnumerable<CompraDto>>> GetAllAsync(PostQueryFilter filter);
     }
 }

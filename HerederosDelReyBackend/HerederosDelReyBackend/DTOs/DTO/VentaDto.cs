@@ -4,6 +4,12 @@
     {
         public int Id { get; set; }
 
+        public int IdSucursal { get; set; }
+
+        public int? IdCliente { get; set; }
+
+        public int IdUsuario { get; set; }
+
         public bool Acredito { get; set; }
 
         public decimal MontoPagado { get; set; }

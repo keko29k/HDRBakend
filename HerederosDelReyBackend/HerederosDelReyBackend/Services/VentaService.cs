@@ -1,9 +1,10 @@
 ﻿using AutoMapper;
 using HerederosDelReyBackend.Data;
 using HerederosDelReyBackend.DTOs;
+using HerederosDelReyBackend.DTOs.DTO;
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using Microsoft.EntityFrameworkCore;
 
 namespace HerederosDelReyBackend.Services
 {
@@ -98,59 +99,129 @@ namespace HerederosDelReyBackend.Services
             return new ApiResponse<IEnumerable<VentaDto>>(objetoDto, objeto.MetaData);
         }
 
-
-
-        public async Task<bool> VentaDetalle(VentaDetalleDto dto)
+        public async Task<bool> VentaDetalle(VentaDetalleDto dto, int idUsuario, int idSucursal)
         {
-            if (dto == null || dto.Venta == null)
-                throw new Exception("Datos de venta inválidos");
+            if (dto?.Venta == null)
+                throw new ArgumentException("Datos de venta inválidos");
+            if (dto.Detalle == null || dto.Detalle.Count == 0)
+                throw new ArgumentException("La venta debe incluir al menos un detalle");
 
-            // =========================
-            // 1. CREAR VENTA
-            // =========================
             var venta = _mapper.Map<Venta>(dto.Venta);
+            venta.IdUsuario = idUsuario;
+            venta.IdSucursal = idSucursal;
             venta.FechaVenta = DateTime.Now;
+            venta.EstadoVenta = string.IsNullOrWhiteSpace(dto.Venta.EstadoVenta)
+                ? "COMPLETADA"
+                : dto.Venta.EstadoVenta.Trim();
+            venta.DetalleVenta.Clear();
+            venta.Pagos.Clear();
 
-            await _unitOfWork.Ventas.AddAsync(venta);
-            await _unitOfWork.SaveChangesAsync(); // genera ID
+            if (venta.IdCliente.HasValue && await _unitOfWork.Clientes.GetByIdAsync(venta.IdCliente.Value) == null)
+                throw new ArgumentException("El cliente indicado no existe");
 
-            // =========================
-            // 2. VALIDAR DETALLES
-            // =========================
-            if (dto.Detalle == null || !dto.Detalle.Any())
-                throw new Exception("La venta no tiene detalles");
+            var inventarios = new Dictionary<int, InventarioSucursal>();
+            var fechaHoy = DateOnly.FromDateTime(DateTime.Today);
 
             foreach (var detalleDto in dto.Detalle)
             {
-                var detalle = _mapper.Map<DetalleVenta>(detalleDto);
+                if (detalleDto.IdProducto <= 0 || detalleDto.Cantidad <= 0)
+                    throw new ArgumentException("Cada detalle debe indicar un producto válido y una cantidad mayor que cero");
 
-                detalle.IdVenta = venta.Id;
+                var producto = await _unitOfWork.Productos.GetByIdAsync(detalleDto.IdProducto);
+                if (producto == null)
+                    throw new ArgumentException($"No se encontró el producto con ID {detalleDto.IdProducto}");
+                if (!producto.PermiteVenta)
+                    throw new ArgumentException($"El producto {producto.Nombre} no está habilitado para la venta");
 
-                // =========================
-                // 3. VALIDAR PRODUCTO
-                // =========================
-                //if (detalle.IdProducto > 0)
-                //{
-                //    var producto = await _unitOfWork.Productos.GetByIdAsync(detalle.IdProducto);
+                if (producto.ControlaInventario)
+                {
+                    if (!inventarios.TryGetValue(producto.Id, out var inventario))
+                    {
+                        inventario = await _unitOfWork.InventarioSucursal.GetAllAsQueryable()
+                            .FirstOrDefaultAsync(x => x.IdProducto == producto.Id && x.IdSucursal == idSucursal);
+                        if (inventario == null)
+                            throw new ArgumentException($"No hay inventario del producto {producto.Nombre} en esta sucursal");
 
-                //    if (producto == null)
-                //        throw new Exception("Producto no encontrado");
+                        inventarios[producto.Id] = inventario;
+                    }
 
-                //    if (producto.Stock < detalle.Cantidad)
-                //        throw new Exception($"Stock insuficiente para {producto.Nombre}");
+                    if (inventario.StockActual < detalleDto.Cantidad)
+                        throw new ArgumentException($"Stock insuficiente para {producto.Nombre}");
 
-                //    producto.Stock -= detalle.Cantidad;
-                //    _unitOfWork.Productos.Update(producto);
-                //}
+                    inventario.StockActual -= detalleDto.Cantidad;
+                    inventario.FechaModificacion = DateTime.Now;
+                }
 
-                await _unitOfWork.DetalleVentas.AddAsync(detalle);
+                Lote? lote = null;
+                if (producto.ManejaLotes && !detalleDto.IdLote.HasValue)
+                    throw new ArgumentException($"Debes indicar un lote para el producto {producto.Nombre}");
+
+                if (detalleDto.IdLote.HasValue)
+                {
+                    lote = await _unitOfWork.Lote.GetByIdAsync(detalleDto.IdLote.Value);
+                    if (lote == null || lote.IdProducto != producto.Id || lote.IdSucursal != idSucursal)
+                        throw new ArgumentException("El lote indicado no corresponde al producto y sucursal de la venta");
+                    if (lote.FechaVencimiento.HasValue && lote.FechaVencimiento.Value < fechaHoy)
+                        throw new ArgumentException($"El lote {lote.NumeroLote} está vencido");
+                    if (lote.CantidadDisponible < detalleDto.Cantidad)
+                        throw new ArgumentException($"Cantidad insuficiente en el lote {lote.NumeroLote}");
+
+                    lote.CantidadDisponible -= detalleDto.Cantidad;
+                    lote.FechaModificacion = DateTime.Now;
+                }
+
+                venta.DetalleVenta.Add(new DetalleVenta
+                {
+                    Estado = false,
+                    FechaRegistro = DateTime.Now,
+                    IdProducto = producto.Id,
+                    IdProductoNavigation = producto,
+                    IdLote = lote?.Id,
+                    IdLoteNavigation = lote,
+                    Cantidad = detalleDto.Cantidad,
+                    PrecioVenta = producto.PrecioVenta,
+                    Descuento = 0,
+                    Impuesto = 0,
+                    SubTotal = decimal.Round(producto.PrecioVenta * detalleDto.Cantidad, 2, MidpointRounding.AwayFromZero)
+                });
             }
 
-            // =========================
-            // 4. GUARDAR TODO JUNTO
-            // =========================
-            await _unitOfWork.SaveChangesAsync();
+            venta.Total = venta.DetalleVenta.Sum(x => x.SubTotal);
+            var pagos = dto.Pagos ?? new List<PagoDto>();
+            foreach (var pagoDto in pagos)
+            {
+                if (pagoDto.IdCaja <= 0 || pagoDto.Monto <= 0 || string.IsNullOrWhiteSpace(pagoDto.MetodoPago))
+                    throw new ArgumentException("Cada pago debe incluir una caja, método y monto mayor que cero");
 
+                var caja = await _unitOfWork.Caja.GetByIdAsync(pagoDto.IdCaja);
+                if (caja == null || !string.Equals(caja.EstadoCaja, "ABIERTA", StringComparison.OrdinalIgnoreCase))
+                    throw new ArgumentException($"La caja {pagoDto.IdCaja} no existe o no está abierta");
+                if (caja.IdSucursal != idSucursal)
+                    throw new ArgumentException("La caja del pago pertenece a otra sucursal");
+
+                venta.Pagos.Add(new Pago
+                {
+                    Estado = false,
+                    FechaRegistro = DateTime.Now,
+                    IdCaja = caja.Id,
+                    MetodoPago = pagoDto.MetodoPago.Trim(),
+                    Monto = pagoDto.Monto,
+                    Referencia = pagoDto.Referencia,
+                    Observacion = pagoDto.Observacion
+                });
+            }
+
+            venta.MontoPagado = venta.Pagos.Sum(x => x.Monto);
+            if (venta.MontoPagado > venta.Total)
+                throw new ArgumentException("El total de pagos no puede superar el total de la venta");
+
+            venta.SaldoPendiente = venta.Total - venta.MontoPagado;
+
+            foreach (var inventario in inventarios.Values)
+                _unitOfWork.InventarioSucursal.Update(inventario);
+
+            await _unitOfWork.Ventas.AddAsync(venta);
+            await _unitOfWork.SaveChangesAsync();
             return true;
         }
     }

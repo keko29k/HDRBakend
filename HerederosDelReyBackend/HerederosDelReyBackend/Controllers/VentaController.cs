@@ -2,8 +2,10 @@
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
 using HerederosDelReyBackend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HerederosDelReyBackend.Controllers
 {
@@ -80,19 +82,28 @@ namespace HerederosDelReyBackend.Controllers
 
         [HttpPost]
         [Route("venta-detalle")]
+        [Authorize]
         public async Task<IActionResult> VentaDetalle([FromBody] VentaDetalleDto dto)
         {
             if (dto == null)
                 return BadRequest("Datos inválidos");
 
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var idUsuario) ||
+                !int.TryParse(User.FindFirst("IdSucursal")?.Value, out var idSucursal))
+                return Unauthorized(new { mensaje = "El token no contiene usuario y sucursal válidos" });
+
             try
             {
-                var result = await _service.VentaDetalle(dto);
+                var result = await _service.VentaDetalle(dto, idUsuario, idSucursal);
 
                 if (result)
                     return Ok(new { message = "Venta registrada correctamente" });
 
                 return StatusCode(500, "No se pudo registrar la venta");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
             }
             catch (Exception ex)
             {

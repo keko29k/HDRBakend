@@ -73,31 +73,5 @@ namespace HerederosDelReyBackend.Controllers
             return Ok(response);
         }
 
-        [HttpPost]
-        [Route("compra-detalle")]
-        public async Task<IActionResult> CompraDetalle([FromBody] CompraDetalleDto dto)
-        {
-            if (dto == null)
-                return BadRequest("Datos inválidos");
-
-            try
-            {
-                var result = await _service.CompraDetalle(dto);
-
-                if (result)
-                    return Ok(new { message = "Compra registrada correctamente" });
-
-                return StatusCode(500, "No se pudo registrar la compra");
-            }
-            catch (Exception ex)
-            {
-                // En producción deberías loguear esto
-                return StatusCode(500, new
-                {
-                    message = "Error interno",
-                    error = ex.Message
-                });
-            }
-        }
     }
 }
