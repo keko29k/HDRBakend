@@ -13,10 +13,6 @@ namespace HerederosDelReyBackend.Interfaces
         Task<InventarioSucursalDto> AddAsync(InventarioSucursalCreateDto dto);
         Task<bool> UpdateAsync(int id, InventarioSucursalUpdateDto dto);
         Task<bool> DeleteAsync(int id);
-        Task<InventarioSucursalResumenDto> GetResumenAsync(int? idSucursal);
-        Task<ApiResponse<IEnumerable<InventarioSucursalListadoDto>>> GetAllAsync(
-            PostQueryFilter filter,
-            int? idSucursal,
-            string? estadoStock);
+        Task<ApiResponse<IEnumerable<InventarioSucursalDto>>> GetAllAsync(PostQueryFilter filter);
     }
 }

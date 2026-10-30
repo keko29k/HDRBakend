@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HerederosDelReyBackend.Controllers
 {
-    [Route("api/InventarioSucursal")]
+    [Route("api/[controller]")]
     [ApiController]
     public class InventarioSucursalControler : ControllerBase
     {
@@ -68,27 +68,10 @@ namespace HerederosDelReyBackend.Controllers
         }
 
         [HttpGet("Paginacion")]
-        public async Task<IActionResult> GetAllPag(
-            [FromQuery] PostQueryFilter filter,
-            [FromQuery] int? idSucursal,
-            [FromQuery] string? estadoStock)
+        public async Task<IActionResult> GetAllPag([FromQuery] PostQueryFilter filter)
         {
-            try
-            {
-                var response = await _service.GetAllAsync(filter, idSucursal, estadoStock);
-                return Ok(response);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { mensaje = ex.Message });
-            }
-        }
-
-        [HttpGet("Resumen")]
-        public async Task<IActionResult> GetResumen([FromQuery] int? idSucursal)
-        {
-            var resumen = await _service.GetResumenAsync(idSucursal);
-            return Ok(resumen);
+            var response = await _service.GetAllAsync(filter);
+            return Ok(response);
         }
     }
 }
