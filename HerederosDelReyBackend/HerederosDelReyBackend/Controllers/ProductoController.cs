@@ -71,5 +71,22 @@ namespace HerederosDelReyBackend.Controllers
             var response = await _service.GetAllAsync(filter);
             return Ok(response);
         }
+
+        [HttpGet("Sucursal/{idSucursal:int}/Paginacion")]
+                    public async Task<IActionResult> GetBySucursal(
+                    int idSucursal,
+                    [FromQuery] PostQueryFilter filter)
+        {
+            if (idSucursal <= 0)
+                return BadRequest(new { mensaje = "Sucursal inválida" });
+
+            var response = await _service.GetBySucursalAsync(
+                filter,
+                idSucursal
+            );
+
+            return Ok(response);
+        }
+
     }
 }

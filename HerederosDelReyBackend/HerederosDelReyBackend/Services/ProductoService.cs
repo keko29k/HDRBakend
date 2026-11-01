@@ -96,5 +96,20 @@ namespace HerederosDelReyBackend.Services
         }
 
 
+        public async Task<ApiResponse<IEnumerable<ProductoDto>>> GetBySucursalAsync(
+            PostQueryFilter filter,
+            int idSucursal)
+        {
+            var productos = await _unitOfWork.Productos
+                .GetBySucursalAsync(filter, idSucursal);
+
+            var productosDto = _mapper.Map<IEnumerable<ProductoDto>>(productos);
+
+            return new ApiResponse<IEnumerable<ProductoDto>>(
+                productosDto,
+                productos.MetaData
+            );
+        }
+
     }
 }
