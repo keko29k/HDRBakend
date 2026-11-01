@@ -53,35 +53,40 @@ namespace HerederosDelReyBackend.Services
             return _mapper.Map<ProductoDto>(objeto);
         }
 
+
         public async Task<bool> UpdateAsync(int id, ProductoUpdateDto dto)
         {
-            if (id == null)
+            var objeto = await _unitOfWork.Productos.GetByIdAsync(id);
+
+            if (objeto == null)
                 return false;
 
-            var Objeto = _unitOfWork.Productos.GetByIdAsync(id).Result;
-            if (Objeto == null)
-                return false;
+            objeto.IdCategoria = dto.IdCategoria;
+            objeto.IdMarca = dto.IdMarca;
 
-           
-            Objeto.IdCategoria = dto.IdCategoria;
-            Objeto.IdMarca = dto.IdMarca;
-            Objeto.Nombre = dto.Nombre;
-            Objeto.NombreGenerico = dto.NombreGenerico;
-            Objeto.Descripcion = dto.Descripcion;
-            Objeto.PrecioCompra= dto.PrecioCompra;
-            Objeto.PrecioVenta= dto.PrecioVenta;
-            Objeto.Peso= dto.Peso;
-            Objeto.ControlaInventario= dto.ControlaInventario;
-            Objeto.ManejaLotes= dto.ManejaLotes;
-            Objeto.TieneVencimiento= dto.TieneVencimiento;
-            Objeto.PermiteVenta= dto.PermiteVenta;
+            objeto.Codigo = dto.Codigo;
+            objeto.CodigoBarras = dto.CodigoBarras;
 
+            objeto.Nombre = dto.Nombre;
+            objeto.NombreGenerico = dto.NombreGenerico;
+            objeto.Descripcion = dto.Descripcion;
 
+            objeto.PrecioCompra = dto.PrecioCompra;
+            objeto.PrecioVenta = dto.PrecioVenta;
+            objeto.Peso = dto.Peso;
 
-            _unitOfWork.Productos.Update(Objeto);
+            objeto.ControlaInventario = dto.ControlaInventario;
+            objeto.ManejaLotes = dto.ManejaLotes;
+            objeto.TieneVencimiento = dto.TieneVencimiento;
+            objeto.PermiteVenta = dto.PermiteVenta;
+
+            _unitOfWork.Productos.Update(objeto);
+
             await _unitOfWork.SaveChangesAsync();
+
             return true;
         }
+
         public async Task<ApiResponse<IEnumerable<ProductoDto>>> GetAllAsync(PostQueryFilter filter)
         {
             var objeto = await _unitOfWork.Productos.GetAllAsync(filter);

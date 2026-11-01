@@ -1,4 +1,7 @@
-﻿namespace HerederosDelReyBackend.Interfaces
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
+
+namespace HerederosDelReyBackend.Interfaces
 {
     public interface IUnitOfWork : IDisposable
     {
@@ -26,5 +29,10 @@
         ILoteRepository Lote { get; }
 
         Task<int> SaveChangesAsync();
+
+        Task<IDbContextTransaction> BeginTransactionAsync(
+      IsolationLevel isolationLevel = IsolationLevel.Serializable);
+
+
     }
 }

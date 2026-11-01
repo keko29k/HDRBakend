@@ -1,6 +1,9 @@
 ﻿using HerederosDelReyBackend.Data;
 using HerederosDelReyBackend.Interfaces;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
 
 namespace HerederosDelReyBackend.Repositories
 {
@@ -86,6 +89,12 @@ namespace HerederosDelReyBackend.Repositories
 
         public ILoteRepository Lote
             => _loteRepository ??= new LoteRepository(_context);
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync(
+            IsolationLevel isolationLevel = IsolationLevel.Serializable)
+        {
+            return await _context.Database.BeginTransactionAsync(isolationLevel);
+        }
 
         public async Task<int> SaveChangesAsync()
         {

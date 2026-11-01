@@ -8,7 +8,12 @@ namespace HerederosDelReyBackend.Interfaces
     {
         Task<PagedList<Lote>> GetAllAsync(PostQueryFilter filter);
 
-
+        // Obtener lotes disponibles de un producto en una sucursal.
+        Task<List<Lote>> ObtenerDisponiblesPorProductoSucursalAsync(
+            int idProducto,
+            int idSucursal,
+            bool tieneVencimiento
+        );
 
 
     }
