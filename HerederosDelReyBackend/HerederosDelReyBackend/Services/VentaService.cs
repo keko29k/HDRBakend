@@ -2,13 +2,14 @@
 using HerederosDelReyBackend.Data;
 using HerederosDelReyBackend.DTOs;
 using HerederosDelReyBackend.DTOs.DTO;
+using HerederosDelReyBackend.DTOs.DTO_CREATE;
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace HerederosDelReyBackend.Services
 {
-    public class VentaService: IVentaService
+    public class VentaService : IVentaService
     {
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
@@ -37,7 +38,7 @@ namespace HerederosDelReyBackend.Services
             await _unitOfWork.Ventas.DeleteAsync(id);
             await _unitOfWork.SaveChangesAsync();
             return true;
-        }   
+        }
 
         public async Task<IEnumerable<VentaDto>> GetAllAsync()
         {
@@ -68,7 +69,7 @@ namespace HerederosDelReyBackend.Services
             venta.SaldoPendiente = dto.SaldoPendiente;
             venta.FechaLimitePago = dto.FechaLimitePago;
             venta.Observacion = dto.Observacion;
-            venta.EstadoVenta = dto.EstadoVenta;    
+            venta.EstadoVenta = dto.EstadoVenta;
 
             _unitOfWork.Ventas.Update(venta);
             await _unitOfWork.SaveChangesAsync();
@@ -451,5 +452,99 @@ namespace HerederosDelReyBackend.Services
 
 
 
+    
+
+
+
+    public async Task<bool> RegistrarAbonoCreditoAsync(
+    int idVenta,
+    RegistrarAbonoCreditoDto dto,
+    int idUsuario,
+    int idSucursal)
+        {
+            if (dto.Monto <= 0)
+                throw new ArgumentException("El monto del abono debe ser mayor a cero.");
+
+            if (dto.MetodoPago != "EFECTIVO" && dto.MetodoPago != "QR")
+                throw new ArgumentException("El método de pago debe ser EFECTIVO o QR.");
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable);
+
+            try
+            {
+                // 1. Buscar la venta
+                var venta = await _unitOfWork.Ventas.GetByIdAsync(idVenta);
+
+                if (venta == null)
+                    throw new ArgumentException("La venta no existe.");
+
+                // 2. Verificar que pertenezca a la sucursal del usuario
+                if (venta.IdSucursal != idSucursal)
+                    throw new ArgumentException("No tienes permiso para modificar esta venta.");
+
+                // 3. Verificar que sea una venta a crédito
+                if (!venta.Acredito)
+                    throw new ArgumentException("Esta venta no es a crédito.");
+
+                // 4. Verificar que todavía tenga saldo pendiente
+                if (venta.SaldoPendiente <= 0)
+                    throw new ArgumentException("Esta venta ya está completamente pagada.");
+
+                // 5. Validar que el abono no supere el saldo pendiente
+                if (dto.Monto > venta.SaldoPendiente)
+                    throw new ArgumentException("El abono no puede superar el saldo pendiente.");
+
+                // 6. Buscar la caja abierta del usuario en su sucursal
+                var caja = await _unitOfWork.Caja.GetAllAsQueryable()
+                    .FirstOrDefaultAsync(c =>
+                        c.IdUsuarioApertura == idUsuario &&
+                        c.IdSucursal == idSucursal &&
+                        c.EstadoCaja == "ABIERTA");
+
+                if (caja == null)
+                    throw new ArgumentException("Debes tener una caja abierta para registrar el abono.");
+
+                // 7. Registrar el pago
+                var pago = new Pago
+                {
+                    IdVenta = venta.Id,
+                    IdCaja = caja.Id,
+                    MetodoPago = dto.MetodoPago,
+                    Monto = dto.Monto,
+                    Referencia = dto.Referencia,
+                    Observacion = dto.Observacion,
+                    Estado = false,
+                    FechaRegistro = DateTime.Now
+                };
+
+                venta.Pagos.Add(pago);
+
+                // 8. Actualizar los montos de la venta
+                venta.MontoPagado += dto.Monto;
+                venta.SaldoPendiente -= dto.Monto;
+
+                // 9. Si ya se canceló toda la deuda
+                if (venta.SaldoPendiente == 0)
+                {
+                    venta.SaldoPendiente = 0;
+                    venta.FechaLimitePago = null;
+                }
+
+                // 10. Guardar cambios
+                await _unitOfWork.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
     }
+
+
 }

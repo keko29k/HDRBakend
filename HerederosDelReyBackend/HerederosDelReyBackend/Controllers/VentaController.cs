@@ -1,4 +1,5 @@
 ﻿using HerederosDelReyBackend.DTOs;
+using HerederosDelReyBackend.DTOs.DTO_CREATE;
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
 using HerederosDelReyBackend.Services;
@@ -118,5 +119,55 @@ namespace HerederosDelReyBackend.Controllers
                 });
             }
         }
+
+        [HttpPost("{idVenta:int}/abonar-credito")]
+        [Authorize]
+        public async Task<IActionResult> RegistrarAbonoCredito(
+    int idVenta,
+    [FromBody] RegistrarAbonoCreditoDto dto)
+        {
+            try
+            {
+                // Obtener el usuario autenticado
+                var idUsuarioClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var idSucursalClaim = User.FindFirst("IdSucursal")?.Value;
+
+                if (!int.TryParse(idUsuarioClaim, out int idUsuario) ||
+                    !int.TryParse(idSucursalClaim, out int idSucursal))
+                {
+                    return Unauthorized(new
+                    {
+                        mensaje = "No se pudo identificar al usuario o su sucursal."
+                    });
+                }
+
+                // Registrar el abono
+                await _service.RegistrarAbonoCreditoAsync(
+                    idVenta,
+                    dto,
+                    idUsuario,
+                    idSucursal);
+
+                return Ok(new
+                {
+                    mensaje = "Abono registrado correctamente."
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    mensaje = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
+                {
+                    mensaje = "Ocurrió un error al registrar el abono."
+                });
+            }
+        }
+
     }
 }
