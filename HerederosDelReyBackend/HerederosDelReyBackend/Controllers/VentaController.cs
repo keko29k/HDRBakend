@@ -90,16 +90,20 @@ namespace HerederosDelReyBackend.Controllers
 
             if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var idUsuario) ||
                 !int.TryParse(User.FindFirst("IdSucursal")?.Value, out var idSucursal))
-                return Unauthorized(new { mensaje = "El token no contiene usuario y sucursal válidos" });
+                return Unauthorized(new
+                {
+                    mensaje = "El token no contiene usuario y sucursal válidos"
+                });
 
             try
             {
-                var result = await _service.VentaDetalle(dto, idUsuario, idSucursal);
+                var idVenta = await _service.VentaDetalle(dto, idUsuario, idSucursal);
 
-                if (result)
-                    return Ok(new { message = "Venta registrada correctamente" });
-
-                return StatusCode(500, "No se pudo registrar la venta");
+                return Ok(new
+                {
+                    message = "Venta registrada correctamente",
+                    idVenta = idVenta
+                });
             }
             catch (ArgumentException ex)
             {
@@ -107,7 +111,6 @@ namespace HerederosDelReyBackend.Controllers
             }
             catch (Exception ex)
             {
-                // En producción deberías loguear esto
                 return StatusCode(500, new
                 {
                     message = "Error interno",
@@ -115,7 +118,5 @@ namespace HerederosDelReyBackend.Controllers
                 });
             }
         }
-
-
     }
 }

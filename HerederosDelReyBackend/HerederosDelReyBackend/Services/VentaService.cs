@@ -111,7 +111,7 @@ namespace HerederosDelReyBackend.Services
 
 
 
-        public async Task<bool> VentaDetalle(
+        public async Task<int> VentaDetalle(
             VentaDetalleDto dto,
             int idUsuario,
             int idSucursal)
@@ -438,7 +438,7 @@ namespace HerederosDelReyBackend.Services
                 // Confirmar transacción
                 await transaction.CommitAsync();
 
-                return true;
+                return venta.Id;
             }
             catch
             {

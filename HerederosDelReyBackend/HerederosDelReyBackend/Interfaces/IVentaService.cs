@@ -10,7 +10,7 @@ namespace HerederosDelReyBackend.Interfaces
         Task<VentaDto> AddAsync(VentaCreateDto dto);
         Task<bool> UpdateAsync(int id, VentaUpdateDto dto);
 
-        Task<bool> VentaDetalle(VentaDetalleDto dto, int idUsuario, int idSucursal);
+        Task<int> VentaDetalle(VentaDetalleDto dto, int idUsuario, int idSucursal);
 
 
         Task<bool> DeleteAsync(int id);
