@@ -17,6 +17,7 @@ namespace HerederosDelReyBackend.Repositories
             var query = GetAllAsQueryable()
             .Include(x => x.IdMarcaNavigation)
             .Include(x => x.IdCategoriaNavigation)
+            .Include(x=>x.Lotes)
             .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(filter.Buscar))

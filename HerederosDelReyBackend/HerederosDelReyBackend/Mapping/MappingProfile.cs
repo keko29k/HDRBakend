@@ -15,9 +15,9 @@ namespace HerederosDelReyBackend.Mapping
             CreateMap<VentaCreateDto, Venta>().ReverseMap();
             CreateMap<VentaUpdateDto, Venta>().ReverseMap();
 
-            
+
             CreateMap<DetalleVentaDto, DetalleVenta>().ReverseMap();
-            
+
             CreateMap<Usuario, UsuarioDto>().ReverseMap();
             CreateMap<UsuarioCreateDto, Usuario>().ReverseMap();
             CreateMap<UsuarioUpdateDto, Usuario>().ReverseMap();
@@ -40,9 +40,15 @@ namespace HerederosDelReyBackend.Mapping
             CreateMap<MarcaCreateDto, Marca>().ReverseMap();
             CreateMap<MarcaUpdateDto, Marca>().ReverseMap();
 
-            CreateMap<Producto, ProductoDto>().ReverseMap();
+            CreateMap<Producto, ProductoDto>()
+                     .ForMember(dest => dest.StockActual,
+                         opt => opt.MapFrom(src =>
+                             src.Lotes
+                                 .Where(l => !l.Estado)
+                                 .Sum(l => l.CantidadDisponible)
+                         ));
             CreateMap<ProductoCreateDto, Producto>().ReverseMap();
-            CreateMap<ProductoUpdateDto, Producto>().ReverseMap();  
+            CreateMap<ProductoUpdateDto, Producto>().ReverseMap();
 
 
 
@@ -57,10 +63,10 @@ namespace HerederosDelReyBackend.Mapping
                .ForMember(d => d.NombreUsuario,
                    o => o.MapFrom(s => s.IdUsuarioAperturaNavigation.Nombres + " " +
                                        s.IdUsuarioAperturaNavigation.Apellidos)); CreateMap<CajaCreateDto, Caja>().ReverseMap();
-                    CreateMap<CajaUpdateDto, Caja>().ReverseMap();
+            CreateMap<CajaUpdateDto, Caja>().ReverseMap();
 
 
-            
+
             CreateMap<Compra, CompraDto>()
            .ForMember(d => d.Sucursal,
                o => o.MapFrom(s => s.IdSucursalNavigation.Nombre))
@@ -77,7 +83,7 @@ namespace HerederosDelReyBackend.Mapping
             CreateMap<DetalleCompraCreateDto, DetalleCompra>().ReverseMap();
             CreateMap<DetalleCompraUpdateDto, DetalleCompra>().ReverseMap();
 
-          
+
 
             CreateMap<ImagenesProducto, ImagenesProductoDto>().ReverseMap();
             CreateMap<ImagenesProductoCreateDto, ImagenesProducto>().ReverseMap();
@@ -92,8 +98,8 @@ namespace HerederosDelReyBackend.Mapping
             CreateMap<InventarioSucursalUpdateDto, InventarioSucursal>().ReverseMap();
 
 
-            CreateMap<Lote,  LoteDto>().ReverseMap();
-            CreateMap<LoteCreateDto,  Lote>().ReverseMap();
+            CreateMap<Lote, LoteDto>().ReverseMap();
+            CreateMap<LoteCreateDto, Lote>().ReverseMap();
             CreateMap<LoteUpdateDto, Lote>().ReverseMap();
 
         }

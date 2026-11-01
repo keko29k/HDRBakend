@@ -30,6 +30,10 @@
         public bool TieneVencimiento { get; set; }
 
         public bool PermiteVenta { get; set; }
+
+        public decimal StockActual { get; set; }
+
+
     }
     
 }

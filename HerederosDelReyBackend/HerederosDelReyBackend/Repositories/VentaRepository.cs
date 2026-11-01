@@ -14,7 +14,11 @@ namespace HerederosDelReyBackend.Repositories
         }
         public async Task<PagedList<Venta>> GetAllAsync(PostQueryFilter filter)
         {
-            var query = GetAllAsQueryable().Include(v => v.IdClienteNavigation).Include(v => v.IdUsuarioNavigation).AsQueryable();
+            var query = GetAllAsQueryable()
+                      .Include(v => v.IdClienteNavigation)
+                      .Include(v => v.IdUsuarioNavigation)
+                      .Include(v => v.Pagos.Where(p => !p.Estado))
+                      .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(filter.Buscar))
             {

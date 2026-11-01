@@ -80,25 +80,33 @@ namespace HerederosDelReyBackend.Services
 
             var objetoDto = objeto.Select(v => new VentaDto
             {
-                //Id = v.Id,
-                //Fecha = v.Fecha,
-                //Total = v.Total,
-                //ClienteId = v.ClienteId,
-                //UsuarioId = v.UsuarioId,
+                Id = v.Id,
+                IdSucursal = v.IdSucursal,
+                IdCliente = v.IdCliente,
+                IdUsuario = v.IdUsuario,
 
-                //UsuarioNombre = v.Usuario != null
-                //    ? v.Usuario.NombreUsuario
-                //    : "Sin usuario",
-                //ClienteNombre = v.Cliente != null
-                //    ? v.Cliente.Nombre
-                //    : "Sin usuario"
+                Acredito = v.Acredito,
+                MontoPagado = v.MontoPagado,
+                SaldoPendiente = v.SaldoPendiente,
+                FechaLimitePago = v.FechaLimitePago,
 
+                FechaVenta = v.FechaVenta,
+                Total = v.Total,
+                Observacion = v.Observacion,
+                EstadoVenta = v.EstadoVenta,
 
+                ClienteNombre = v.IdClienteNavigation == null
+                    ? "Consumidor final"
+                    : $"{v.IdClienteNavigation.Nombres} {v.IdClienteNavigation.Apellidos}".Trim(),
+
+                UsuarioNombre = $"{v.IdUsuarioNavigation.Nombres} {v.IdUsuarioNavigation.Apellidos}".Trim(),
+
+                MetodoPago = string.Join(", ",
+                    v.Pagos.Select(p => p.MetodoPago).Distinct())
             });
 
             return new ApiResponse<IEnumerable<VentaDto>>(objetoDto, objeto.MetaData);
         }
-
         public async Task<bool> VentaDetalle(VentaDetalleDto dto, int idUsuario, int idSucursal)
         {
             if (dto?.Venta == null)
