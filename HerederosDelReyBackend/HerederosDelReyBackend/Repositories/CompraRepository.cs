@@ -15,10 +15,10 @@ namespace HerederosDelReyBackend.Repositories
         public async Task<PagedList<Compra>> GetAllAsync(PostQueryFilter filter)
         {
             var query = GetAllAsQueryable()
-                .Include(x => x.EstadoCompra)
-                .Include(x => x.FechaCompra)
-                .Include(x => x.DetalleCompras) // 🔥 IMPORTANTE
-                .AsQueryable();
+            .Include(x => x.IdProveedorNavigation)
+            .Include(x => x.IdUsuarioNavigation)
+            .Include(x => x.IdSucursalNavigation)
+            .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(filter.Buscar))
             {

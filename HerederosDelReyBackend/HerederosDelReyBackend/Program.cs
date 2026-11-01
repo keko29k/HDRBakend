@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configuración DbContext
 // =========================
 builder.Services.AddDbContext<HerederosDelReyContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Mauri"))
 );
 
 // =========================
