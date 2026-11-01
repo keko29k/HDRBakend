@@ -2,10 +2,11 @@
 using HerederosDelReyBackend.DTOs;
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace HerederosDelReyBackend.Repositories
 {
-    public class InventarioSucursalRepository : GenericRepository<InventarioSucursal>,IInventarioSucursalRepository
+    public class InventarioSucursalRepository : GenericRepository<InventarioSucursal>, IInventarioSucursalRepository
     {
         public InventarioSucursalRepository(HerederosDelReyContext context) : base(context)
         {
@@ -25,6 +26,17 @@ namespace HerederosDelReyBackend.Repositories
             }
 
             return await PagedList<InventarioSucursal>.CreateAsync(query, filter.PageNumber, filter.PageSize);
+        }
+
+        public async Task<InventarioSucursal?> GetBySucursalProductoAsync(
+    int idSucursal,
+    int idProducto)
+        {
+            return await _entities.FirstOrDefaultAsync(x =>
+                x.IdSucursal == idSucursal &&
+                x.IdProducto == idProducto &&
+                x.Estado == false
+            );
         }
     }
 }

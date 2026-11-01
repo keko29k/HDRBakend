@@ -140,7 +140,10 @@ builder.Services.AddControllers();
 // =========================
 // OpenAPI nativo
 // =========================
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
 
 // =========================
 // CORS
@@ -165,6 +168,9 @@ app.MapOpenApi();
 app.MapScalarApiReference(options =>
 {
     options.Title = "HerederosDelRey API";
+
+    options
+        .AddPreferredSecuritySchemes("Bearer");
 });
 
 // =========================
