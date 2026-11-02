@@ -17,5 +17,9 @@ namespace HerederosDelReyBackend.Interfaces
         Task<bool> UpdateAsync(int id, LoteUpdateDto dto);
         Task<ApiResponse<IEnumerable<LoteDto>>> GetAllAsync(PostQueryFilter filter);
 
+        Task<List<LoteVencimientoDto>> GetVencimientosAsync(int? idSucursal, int dias);
+
+        Task RetirarAsync(int idLote, decimal cantidad);
+
     }
 }

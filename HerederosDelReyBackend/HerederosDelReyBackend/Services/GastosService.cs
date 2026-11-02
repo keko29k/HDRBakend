@@ -67,6 +67,7 @@ namespace HerederosDelReyBackend.Services
                 return false;
 
             Objeto.Concepto = dto.Concepto;
+            Objeto.NumeroComprobante = dto.NumeroComprobante;
             Objeto.Monto = dto.Monto;
             Objeto.Observacion = dto.Observacion;
 
