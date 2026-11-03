@@ -37,6 +37,18 @@ namespace HerederosDelReyBackend.Controllers
             return Ok(venta);
         }
 
+        // GET api/Venta/5/detalle — cabecera, productos (con lote) y pagos/abonos.
+        [HttpGet("{id:int}/detalle")]
+        public async Task<IActionResult> GetDetalle(int id)
+        {
+            var venta = await _service.GetVistaAsync(id);
+
+            if (venta == null)
+                return NotFound(new { mensaje = "venta no encontrada" });
+
+            return Ok(venta);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create(VentaCreateDto dto)
         {

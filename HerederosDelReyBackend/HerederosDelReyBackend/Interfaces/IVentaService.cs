@@ -8,6 +8,7 @@ namespace HerederosDelReyBackend.Interfaces
     {
         Task<IEnumerable<VentaDto>> GetAllAsync();
         Task<VentaDto?> GetByIdAsync(int id);
+        Task<DTOs.DTO.VentaVistaDto?> GetVistaAsync(int id);
         Task<VentaDto> AddAsync(VentaCreateDto dto);
         Task<bool> UpdateAsync(int id, VentaUpdateDto dto);
 

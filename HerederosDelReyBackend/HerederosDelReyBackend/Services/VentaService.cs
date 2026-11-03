@@ -55,6 +55,70 @@ namespace HerederosDelReyBackend.Services
             return _mapper.Map<VentaDto>(objeto);
         }
 
+        // =====================================================
+        // VISTA DE DETALLE (solo lectura)
+        // Cabecera, productos (con lote) y pagos/abonos de una venta.
+        // =====================================================
+
+        public async Task<VentaVistaDto?> GetVistaAsync(int id)
+        {
+            return await _unitOfWork.Ventas
+                .GetAllAsQueryable()
+                .Where(v => v.Id == id)
+                .Select(v => new VentaVistaDto
+                {
+                    Id = v.Id,
+                    FechaVenta = v.FechaVenta,
+                    EstadoVenta = v.EstadoVenta,
+                    Acredito = v.Acredito,
+                    Total = v.Total,
+                    MontoPagado = v.MontoPagado,
+                    SaldoPendiente = v.SaldoPendiente,
+                    FechaLimitePago = v.FechaLimitePago,
+                    Observacion = v.Observacion,
+
+                    Cliente = v.IdClienteNavigation == null
+                        ? "Consumidor final"
+                        : (v.IdClienteNavigation.Nombres + " " + (v.IdClienteNavigation.Apellidos ?? "")).Trim(),
+                    ClienteDocumento = v.IdClienteNavigation == null ? null : v.IdClienteNavigation.NitCi,
+                    Vendedor = (v.IdUsuarioNavigation.Nombres + " " + (v.IdUsuarioNavigation.Apellidos ?? "")).Trim(),
+                    Sucursal = v.IdSucursalNavigation.Nombre,
+
+                    Items = v.DetalleVenta
+                        .Where(d => !d.Estado)
+                        .OrderBy(d => d.Id)
+                        .Select(d => new VentaVistaItemDto
+                        {
+                            IdProducto = d.IdProducto,
+                            Codigo = d.IdProductoNavigation.Codigo,
+                            Producto = d.IdProductoNavigation.Nombre,
+                            NumeroLote = d.IdLoteNavigation == null ? null : d.IdLoteNavigation.NumeroLote,
+                            FechaVencimiento = d.IdLoteNavigation == null ? null : d.IdLoteNavigation.FechaVencimiento,
+                            Cantidad = d.Cantidad,
+                            PrecioVenta = d.PrecioVenta,
+                            Descuento = d.Descuento,
+                            SubTotal = d.SubTotal
+                        })
+                        .ToList(),
+
+                    Pagos = v.Pagos
+                        .Where(p => !p.Estado)
+                        .OrderBy(p => p.FechaRegistro)
+                        .Select(p => new VentaVistaPagoDto
+                        {
+                            Id = p.Id,
+                            Fecha = p.FechaRegistro,
+                            MetodoPago = p.MetodoPago,
+                            Monto = p.Monto,
+                            IdCaja = p.IdCaja,
+                            Referencia = p.Referencia,
+                            Observacion = p.Observacion
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<bool> UpdateAsync(int id, VentaUpdateDto dto)
         {
             if (id == null)

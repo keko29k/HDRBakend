@@ -10,6 +10,7 @@ namespace HerederosDelReyBackend.Interfaces
     {
         Task<IEnumerable<CompraDto>> GetAllAsync();
         Task<CompraDto?> GetByIdAsync(int id);
+        Task<CompraVistaDto?> GetVistaAsync(int id);
         Task<CompraDto> AddAsync(CompraCreateDto dto);
         Task<bool> UpdateAsync(int id, CompraUpdateDto dto);
         Task<bool> DeleteAsync(int id);

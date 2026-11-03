@@ -7,6 +7,7 @@ using HerederosDelReyBackend.DTOs.DTO_CREATE;
 using HerederosDelReyBackend.DTOs.DTO_UPDATE;
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace HerederosDelReyBackend.Services
 {
@@ -72,6 +73,55 @@ namespace HerederosDelReyBackend.Services
             return compra == null
                 ? null
                 : _mapper.Map<CompraDto>(compra);
+        }
+
+        // =====================================================
+        // VISTA DE DETALLE (solo lectura)
+        // Cabecera y productos (con el lote creado) de una compra.
+        // =====================================================
+
+        public async Task<CompraVistaDto?> GetVistaAsync(int id)
+        {
+            return await _unitOfWork.Compra
+                .GetAllAsQueryable()
+                .Where(c => c.Id == id)
+                .Select(c => new CompraVistaDto
+                {
+                    Id = c.Id,
+                    FechaCompra = c.FechaCompra,
+                    EstadoCompra = c.EstadoCompra,
+                    TipoDocumento = c.TipoDocumento,
+                    NumeroDocumento = c.NumeroDocumento,
+                    SubTotal = c.SubTotal,
+                    Descuento = c.Descuento,
+                    Impuesto = c.Impuesto,
+                    Total = c.Total,
+                    Observacion = c.Observacion,
+
+                    Proveedor = c.IdProveedorNavigation.Nombre,
+                    ProveedorNit = c.IdProveedorNavigation.Nit,
+                    Sucursal = c.IdSucursalNavigation.Nombre,
+                    Usuario = (c.IdUsuarioNavigation.Nombres + " " + (c.IdUsuarioNavigation.Apellidos ?? "")).Trim(),
+
+                    Items = c.DetalleCompras
+                        .Where(d => !d.Estado)
+                        .OrderBy(d => d.Id)
+                        .Select(d => new CompraVistaItemDto
+                        {
+                            IdProducto = d.IdProducto,
+                            Codigo = d.IdProductoNavigation.Codigo,
+                            Producto = d.IdProductoNavigation.Nombre,
+                            NumeroLote = d.IdLoteNavigation == null ? null : d.IdLoteNavigation.NumeroLote,
+                            FechaVencimiento = d.IdLoteNavigation == null ? null : d.IdLoteNavigation.FechaVencimiento,
+                            Cantidad = d.Cantidad,
+                            PrecioCompra = d.PrecioCompra,
+                            Descuento = d.Descuento,
+                            Impuesto = d.Impuesto,
+                            SubTotal = d.SubTotal
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
         }
 
         // =====================================================
