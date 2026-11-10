@@ -66,5 +66,10 @@ false);
                 .AsQueryable();
         }
 
+        public IQueryable<T> GetAllIncluyendoEliminados()
+        {
+            return _entities.AsNoTracking();
+        }
+
     }
 }

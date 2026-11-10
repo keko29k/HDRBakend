@@ -1,4 +1,5 @@
 ﻿using HerederosDelReyBackend.DTOs;
+using HerederosDelReyBackend.Exceptions;
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -43,7 +44,8 @@ namespace HerederosDelReyBackend.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var creado = await _usuarioService.AddAsync(dto);
+            var (creado, conflicto) = await Duplicados.IntentarAsync(() => _usuarioService.AddAsync(dto));
+            if (conflicto != null) return conflicto;
             return CreatedAtAction(nameof(GetById), new { id = creado.Id }, creado);
         }
 
@@ -53,7 +55,8 @@ namespace HerederosDelReyBackend.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var actualizado = await _usuarioService.UpdateAsync(id, dto);
+            var (actualizado, conflicto) = await Duplicados.IntentarAsync(() => _usuarioService.UpdateAsync(id, dto));
+            if (conflicto != null) return conflicto;
             if (!actualizado)
                 return BadRequest(new { mensaje = "No se pudo actualizar el usuario" });
 

@@ -10,6 +10,9 @@ namespace HerederosDelReyBackend.Interfaces
         Task AddAsync(T entity);
         void Update(T entity);
         IQueryable<T> GetAllAsQueryable();
+
+        /// <summary>Incluye también los registros eliminados (Estado = true).</summary>
+        IQueryable<T> GetAllIncluyendoEliminados();
         Task DeleteAsync(int id);
     }
 }

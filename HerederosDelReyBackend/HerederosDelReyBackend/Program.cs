@@ -2,6 +2,7 @@ using System.Text;
 using AutoMapper;
 using HerederosDelReyBackend.Data;
 using HerederosDelReyBackend.Interfaces;
+using HerederosDelReyBackend.Middleware;
 using HerederosDelReyBackend.Models;
 using HerederosDelReyBackend.Repositories;
 using HerederosDelReyBackend.Services;
@@ -188,6 +189,9 @@ app.MapGet("/", context =>
 app.UseHttpsRedirection();
 
 app.UseCors("PermitirTodo");
+
+// Datos duplicados -> 409 Conflict { mensaje } (después de CORS)
+app.UseMiddleware<ManejoErroresMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1,4 +1,5 @@
 ﻿using HerederosDelReyBackend.DTOs;
+using HerederosDelReyBackend.Exceptions;
 using HerederosDelReyBackend.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -36,7 +37,8 @@ namespace HerederosDelReyBackend.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var creado = await _service.AddAsync(dto);
+            var (creado, conflicto) = await Duplicados.IntentarAsync(() => _service.AddAsync(dto));
+            if (conflicto != null) return conflicto;
 
             return CreatedAtAction(nameof(GetById), new { id = creado.Id }, creado);
         }
@@ -47,7 +49,8 @@ namespace HerederosDelReyBackend.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var ok = await _service.UpdateAsync(id, dto);
+            var (ok, conflicto) = await Duplicados.IntentarAsync(() => _service.UpdateAsync(id, dto));
+            if (conflicto != null) return conflicto;
 
             if (!ok)
                 return NotFound(new { mensaje = "marca no encontrada" });

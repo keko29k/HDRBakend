@@ -4,8 +4,10 @@ using HerederosDelReyBackend.DTOs;
 using HerederosDelReyBackend.DTOs.DTO;
 using HerederosDelReyBackend.DTOs.DTO_CREATE;
 using HerederosDelReyBackend.DTOs.DTO_UPDATE;
+using HerederosDelReyBackend.Exceptions;
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
+using Microsoft.EntityFrameworkCore;
 
 public class ClienteService : IClienteService
 {
@@ -21,7 +23,10 @@ public class ClienteService : IClienteService
 
     public async Task<ClienteDto> AddAsync(ClienteCreateDto dto)
     {
+        await ValidarNitUnicoAsync(dto.NitCi, null);
+
         var Objeto = _mapper.Map<Cliente>(dto);
+        Objeto.NitCi = string.IsNullOrWhiteSpace(Objeto.NitCi) ? null : Objeto.NitCi.Trim();
 
         await _unitOfWork.Clientes.AddAsync(Objeto);
         await _unitOfWork.SaveChangesAsync();
@@ -64,9 +69,11 @@ public class ClienteService : IClienteService
         if (Cliente == null)
             return false;
 
+        await ValidarNitUnicoAsync(dto.NitCi, id);
+
         Cliente.Nombres = dto.Nombres;
         Cliente.Apellidos = dto.Apellidos;
-        Cliente.NitCi = dto.NitCi;
+        Cliente.NitCi = string.IsNullOrWhiteSpace(dto.NitCi) ? null : dto.NitCi.Trim();
         Cliente.Telefono = dto.Telefono;
         Cliente.Correo = dto.Correo;
         Cliente.Direccion = dto.Direccion;
@@ -76,6 +83,22 @@ public class ClienteService : IClienteService
         _unitOfWork.Clientes.Update(Cliente);
         await _unitOfWork.SaveChangesAsync();
         return true;
+    }
+
+    // No se permiten dos clientes activos con el mismo NIT/CI.
+    // "0" se acepta repetido porque en Bolivia se usa para "sin NIT".
+    private async Task ValidarNitUnicoAsync(string? nitCi, int? idActual)
+    {
+        var valor = nitCi?.Trim();
+        if (string.IsNullOrEmpty(valor) || valor == "0")
+            return;
+
+        var existe = await _unitOfWork.Clientes
+            .GetAllAsQueryable()
+            .AnyAsync(c => c.NitCi == valor && (idActual == null || c.Id != idActual));
+
+        if (existe)
+            throw new DatoDuplicadoException($"Ya existe un cliente con el NIT/CI {valor}.");
     }
 
     public async Task<ApiResponse<IEnumerable<ClienteDto>>> GetAllAsync(PostQueryFilter filter)

@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using HerederosDelReyBackend.Data;
 using HerederosDelReyBackend.DTOs;
+using HerederosDelReyBackend.Exceptions;
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace HerederosDelReyBackend.Services
 {
@@ -20,7 +22,11 @@ namespace HerederosDelReyBackend.Services
 
         public async Task<ProductoDto> AddAsync(ProductoCreateDto dto)
         {
+            await ValidarCodigosAsync(dto.Codigo, dto.CodigoBarras, null);
+
             var Objeto = _mapper.Map<Producto>(dto);
+            Objeto.Codigo = Objeto.Codigo.Trim();
+            Objeto.CodigoBarras = string.IsNullOrWhiteSpace(Objeto.CodigoBarras) ? null : Objeto.CodigoBarras.Trim();
 
             await _unitOfWork.Productos.AddAsync(Objeto);
             await _unitOfWork.SaveChangesAsync();
@@ -61,11 +67,13 @@ namespace HerederosDelReyBackend.Services
             if (objeto == null)
                 return false;
 
+            await ValidarCodigosAsync(dto.Codigo, dto.CodigoBarras, id);
+
             objeto.IdCategoria = dto.IdCategoria;
             objeto.IdMarca = dto.IdMarca;
 
-            objeto.Codigo = dto.Codigo;
-            objeto.CodigoBarras = dto.CodigoBarras;
+            objeto.Codigo = dto.Codigo.Trim();
+            objeto.CodigoBarras = string.IsNullOrWhiteSpace(dto.CodigoBarras) ? null : dto.CodigoBarras.Trim();
 
             objeto.Nombre = dto.Nombre;
             objeto.NombreGenerico = dto.NombreGenerico;
@@ -85,6 +93,39 @@ namespace HerederosDelReyBackend.Services
             await _unitOfWork.SaveChangesAsync();
 
             return true;
+        }
+
+        // El código es único en la base de datos (incluye productos eliminados)
+        // y el código de barras no puede repetirse entre productos activos.
+        private async Task ValidarCodigosAsync(string? codigo, string? codigoBarras, int? idActual)
+        {
+            var codigoLimpio = codigo?.Trim();
+            if (!string.IsNullOrEmpty(codigoLimpio))
+            {
+                var conCodigo = await _unitOfWork.Productos
+                    .GetAllIncluyendoEliminados()
+                    .Where(p => p.Codigo == codigoLimpio && (idActual == null || p.Id != idActual))
+                    .Select(p => new { p.Estado })
+                    .FirstOrDefaultAsync();
+
+                if (conCodigo != null)
+                {
+                    throw new DatoDuplicadoException(conCodigo.Estado
+                        ? $"El código \"{codigoLimpio}\" pertenece a un producto eliminado. Usa otro código."
+                        : $"Ya existe un producto con el código \"{codigoLimpio}\".");
+                }
+            }
+
+            var barrasLimpio = codigoBarras?.Trim();
+            if (!string.IsNullOrEmpty(barrasLimpio))
+            {
+                var existe = await _unitOfWork.Productos
+                    .GetAllAsQueryable()
+                    .AnyAsync(p => p.CodigoBarras == barrasLimpio && (idActual == null || p.Id != idActual));
+
+                if (existe)
+                    throw new DatoDuplicadoException($"Ya existe un producto con el código de barras {barrasLimpio}.");
+            }
         }
 
         public async Task<ApiResponse<IEnumerable<ProductoDto>>> GetAllAsync(PostQueryFilter filter)

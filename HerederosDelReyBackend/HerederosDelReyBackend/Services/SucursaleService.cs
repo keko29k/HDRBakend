@@ -4,8 +4,10 @@ using HerederosDelReyBackend.DTOs;
 using HerederosDelReyBackend.DTOs.DTO;
 using HerederosDelReyBackend.DTOs.DTO_CREATE;
 using HerederosDelReyBackend.DTOs.DTO_UPDATE;
+using HerederosDelReyBackend.Exceptions;
 using HerederosDelReyBackend.Interfaces;
 using HerederosDelReyBackend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace HerederosDelReyBackend.Services
 {
@@ -28,7 +30,10 @@ namespace HerederosDelReyBackend.Services
         }
         public async Task<SucursaleDto> AddAsync(SucursaleCreateDto dto)
         {
+            await ValidarNombreUnicoAsync(dto.Nombre, null);
+
             var Objeto = _mapper.Map<Sucursale>(dto);
+            Objeto.Nombre = Objeto.Nombre.Trim();
 
             await _unitOfWork.Sucursale.AddAsync(Objeto);
             await _unitOfWork.SaveChangesAsync();
@@ -66,7 +71,9 @@ namespace HerederosDelReyBackend.Services
             if (Objeto == null)
                 return false;
 
-            Objeto.Nombre = dto.Nombre;
+            await ValidarNombreUnicoAsync(dto.Nombre, id);
+
+            Objeto.Nombre = dto.Nombre.Trim();
             Objeto.Telefono = dto.Telefono;
             Objeto.Direccion = dto.Direccion;
             Objeto.Correo = dto.Correo;
@@ -74,6 +81,21 @@ namespace HerederosDelReyBackend.Services
             _unitOfWork.Sucursale.Update(Objeto);
             await _unitOfWork.SaveChangesAsync();
             return true;
+        }
+
+        // No se permiten dos sucursales activas con el mismo nombre.
+        private async Task ValidarNombreUnicoAsync(string? nombre, int? idActual)
+        {
+            var valor = nombre?.Trim();
+            if (string.IsNullOrEmpty(valor))
+                return;
+
+            var existe = await _unitOfWork.Sucursale
+                .GetAllAsQueryable()
+                .AnyAsync(s => s.Nombre == valor && (idActual == null || s.Id != idActual));
+
+            if (existe)
+                throw new DatoDuplicadoException($"Ya existe una sucursal con el nombre \"{valor}\".");
         }
 
         public async Task<ApiResponse<IEnumerable<SucursaleDto>>> GetAllAsync(PostQueryFilter filter)
