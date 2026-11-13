@@ -316,6 +316,12 @@ namespace HerederosDelReyBackend.Services
             var inventariosProcesados =
                 new Dictionary<int, InventarioSucursal>();
 
+            // Inventarios creados en esta compra (sucursal o producto nuevos).
+            // Ya están marcados para insertarse: no se les llama a Update,
+            // porque eso los convierte en un UPDATE de una fila que no existe.
+            var inventariosNuevos =
+                new HashSet<InventarioSucursal>();
+
             // -------------------------------------------------
             // 6. PROCESAR DETALLES
             // -------------------------------------------------
@@ -575,6 +581,8 @@ namespace HerederosDelReyBackend.Services
 
                             await _unitOfWork.InventarioSucursal
                                 .AddAsync(inventario);
+
+                            inventariosNuevos.Add(inventario);
                         }
 
                         inventariosProcesados.Add(
@@ -586,9 +594,12 @@ namespace HerederosDelReyBackend.Services
                     inventario.StockActual += item.Cantidad;
                     inventario.FechaModificacion = DateTime.Now;
 
-                    _unitOfWork.InventarioSucursal.Update(
-                        inventario
-                    );
+                    if (!inventariosNuevos.Contains(inventario))
+                    {
+                        _unitOfWork.InventarioSucursal.Update(
+                            inventario
+                        );
+                    }
                 }
 
                 // ---------------------------------------------
