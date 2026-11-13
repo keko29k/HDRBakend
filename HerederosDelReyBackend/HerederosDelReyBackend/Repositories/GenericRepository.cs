@@ -44,6 +44,8 @@ namespace HerederosDelReyBackend.Repositories
         {
             _entities.Update(entity);
         }
+        
+
 
         public async Task DeleteAsync(int id)
         {
